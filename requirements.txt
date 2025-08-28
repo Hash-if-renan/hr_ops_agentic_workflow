@@ -1,0 +1,6 @@
+livekit-plugins-assemblyai==1.2.6
+livekit-plugins-noise-cancellation==0.2.5
+livekit-plugins-openai==1.2.6
+livekit-plugins-silero==1.2.6
+livekit-agents==1.2.6
+livekit==1.0.12
