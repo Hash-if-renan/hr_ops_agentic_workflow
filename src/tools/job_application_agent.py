@@ -99,7 +99,7 @@ async def create_job_application(
     normalized_name = name.strip().lower().replace(" ", "_")
     normalized_dob = formatted_dob.lower().replace("/", "-")
 
-    out_dir = Path("applications")
+    out_dir = Path("data/applications")
     out_dir.mkdir(exist_ok=True)
 
     # Generate unique application ID
