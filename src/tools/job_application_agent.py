@@ -47,20 +47,39 @@ OPEN_JOBS = [
 #------
 @function_tool(
     description="""
-    Checks the application status for a given applicant by name and date of birth.
+    Checks the application status for a given applicant.
 
     Arguments:
-    - name (str): Applicant's full name.
-    - dob (str): Date of birth in dd-mm-yyyy format.
+    - application_id (str, optional): Unique application identifier. If provided, this will be used first.
+    - name (str, optional): Applicant's full name. Required only if application_id is not provided.
+    - dob (str, optional): Date of birth in dd-mm-yyyy format. Required only if application_id is not provided.
 
     Returns:
-    - The application status if found, otherwise None.
+    - The full application JSON if found, otherwise None.
     """
 )
-async def check_application_status(name: str, dob: str) -> str | None:
+async def check_application_status(
+    application_id: str | None = None,
+    name: str | None = None,
+    dob: str | None = None,
+) -> dict | None:
     from pathlib import Path
     import json
     from datetime import datetime
+
+    out_dir = Path("data/applications")
+    if not out_dir.exists():
+        return None
+
+    # Case 1: Lookup by application_id
+    if application_id:
+        for file in out_dir.glob(f"*_{application_id}.json"):
+            with open(file, "r") as f:
+                return json.load(f)
+
+    # Case 2: Fallback to name + dob
+    if not name or not dob:
+        return None
 
     try:
         dob_date = datetime.strptime(dob.strip(), "%d-%m-%Y")
@@ -70,16 +89,12 @@ async def check_application_status(name: str, dob: str) -> str | None:
 
     normalized_name = name.strip().lower().replace(" ", "_")
     normalized_dob = formatted_dob.lower().replace("/", "-")
-    out_dir = Path("data/applications")
-    if not out_dir.exists():
-        return None
 
     for file in out_dir.glob(f"*_{normalized_name}_{normalized_dob}_*.json"):
         with open(file, "r") as f:
-            data = json.load(f)
-        return data.get("application_status", None)
+            return json.load(f)
+
     return None
-#----
 
 @function_tool(
     description="""
