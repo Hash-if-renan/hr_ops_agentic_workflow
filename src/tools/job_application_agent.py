@@ -1,4 +1,5 @@
 import logging
+from typing import List
 import json
 import uuid
 from pathlib import Path
@@ -7,6 +8,35 @@ from livekit.agents.voice import Agent, AgentSession, room_io
 from livekit.plugins import openai, silero, assemblyai
 from livekit.plugins import noise_cancellation
 from dotenv import load_dotenv
+from src.utils.retriever import Retriever
+
+# Initialize retriever (ensure index is already built or loaded)
+
+@function_tool(
+    description="""
+    Query the PDF knowledge base that has been indexed into FAISS.
+
+    Arguments:
+    - query (str): The question to ask against the PDF documents.
+
+    Returns:
+    - A string context that agent can use while generating response.
+    """
+)
+async def query_knowledge_base(query: str) -> str:
+    """
+    This tool searches the PDF knowledge base for job-related context.
+    The response is used by the agent to provide job-related answers.
+    """
+    try:
+        retriever = Retriever()
+
+        response = retriever.query(query,top_k=5)
+        print(f"Knowledge Base Response: {response}")
+        return response  # LlamaIndex returns a Response object
+    except Exception as e:
+        return f"❌ Error querying index: {e}"
+
 
 OPEN_JOBS = [
     {"job_id": "J001", "title": "Software Engineer"},
