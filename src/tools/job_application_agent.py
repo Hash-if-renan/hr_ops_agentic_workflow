@@ -116,9 +116,9 @@ async def create_job_application(
         "skills": skills,
         "experience": experience,
         # Additional placeholders
-        "application_status": "",
-        "resume_reviewed": "",
-        "response_timeframe": "",
+        "application_status": "Pending",
+        "resume_reviewed": "Not yet",
+        "response_timeframe": "2 weeks",
         "rejection_reason": "",
         "reapply_possible": "",
     }
