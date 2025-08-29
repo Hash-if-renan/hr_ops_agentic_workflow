@@ -9,6 +9,7 @@ from livekit.plugins import noise_cancellation
 from dotenv import load_dotenv
 from src.tools.job_application_agent import (
     check_existing_application,
+    check_application_status,
     create_job_application,
     OPEN_JOBS,
 )
@@ -45,5 +46,5 @@ class JobApplicationAgent(Agent):
             llm=openai.LLM(model="gpt-4o-2024-08-06"),
             tts=openai.TTS(model="gpt-4o-mini-tts", voice="ash"),
             vad=silero.VAD.load(min_speech_duration=0.1),
-            tools=[check_existing_application, create_job_application],
+            tools=[check_existing_application, create_job_application, check_application_status],
         )

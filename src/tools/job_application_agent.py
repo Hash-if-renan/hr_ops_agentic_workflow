@@ -14,6 +14,42 @@ OPEN_JOBS = [
     {"job_id": "J003", "title": "Product Manager"},
 ]
 
+#------
+@function_tool(
+    description="""
+    Checks the application status for a given applicant by name and date of birth.
+
+    Arguments:
+    - name (str): Applicant's full name.
+    - dob (str): Date of birth in dd-mm-yyyy format.
+
+    Returns:
+    - The application status if found, otherwise None.
+    """
+)
+async def check_application_status(name: str, dob: str) -> str | None:
+    from pathlib import Path
+    import json
+    from datetime import datetime
+
+    try:
+        dob_date = datetime.strptime(dob.strip(), "%d-%m-%Y")
+        formatted_dob = dob_date.strftime("%d-%m-%Y")
+    except ValueError:
+        return None
+
+    normalized_name = name.strip().lower().replace(" ", "_")
+    normalized_dob = formatted_dob.lower().replace("/", "-")
+    out_dir = Path("data/applications")
+    if not out_dir.exists():
+        return None
+
+    for file in out_dir.glob(f"*_{normalized_name}_{normalized_dob}_*.json"):
+        with open(file, "r") as f:
+            data = json.load(f)
+        return data.get("application_status", None)
+    return None
+#----
 
 @function_tool(
     description="""
@@ -116,8 +152,8 @@ async def create_job_application(
         "skills": skills,
         "experience": experience,
         # Additional placeholders
-        "application_status": "",
-        "resume_reviewed": "",
+        "application_status": "in progress",
+        "resume_reviewed": "pending",
         "response_timeframe": "",
         "rejection_reason": "",
         "reapply_possible": "",
