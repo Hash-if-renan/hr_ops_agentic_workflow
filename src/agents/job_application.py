@@ -9,6 +9,7 @@ from livekit.plugins import noise_cancellation
 from dotenv import load_dotenv
 from src.tools.job_application_agent import (
     check_existing_application,
+    check_application_status,
     create_job_application,
     query_knowledge_base,
     OPEN_JOBS,
@@ -45,13 +46,14 @@ class JobApplicationAgent(Agent):
                 3. If an existing application is found, inform the user of their application ID and do not create a new one.
                 4. If no application exists, call the 'create_job_application' tool with these arguments:
                    job_id, name, email, experience, skills, dob (in dd-mm-yyyy format).
-
-                For all other non-job-related queries, provide clear and helpful answers in a professional tone.
+                5. To check the status of an application, use the 'check_application_status' tool, which takes the user's name and date of birth and returns their application status.
+                6. For all other queries, provide clear and helpful answers regarding the job or application process.
             """,
 
             stt=assemblyai.STT(),
             llm=openai.LLM(model="gpt-4o-2024-08-06"),
             tts=openai.TTS(model="gpt-4o-mini-tts", voice="ash"),
             vad=silero.VAD.load(min_speech_duration=0.1),
-            tools=[check_existing_application, create_job_application,query_knowledge_base],
+
+            tools=[check_existing_application, create_job_application, check_application_status,query_knowledge_base],
         )

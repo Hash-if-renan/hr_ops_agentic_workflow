@@ -6,6 +6,7 @@ from livekit.plugins import noise_cancellation
 from src.agents.job_application import JobApplicationAgent
 from dotenv import load_dotenv
 
+
 # import your updater function
 from src.utils.update_applications import update_applications
 
