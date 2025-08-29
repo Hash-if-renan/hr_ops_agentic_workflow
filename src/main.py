@@ -5,7 +5,6 @@ from livekit.plugins import noise_cancellation
 from src.agents.job_application import JobApplicationAgent
 from dotenv import load_dotenv
 
-# export PYTHONPATH=/Users/chaitanyadhir/Renan/hr_ops_agentic_workflow
 load_dotenv()
 
 logger = logging.getLogger("murf-voice-agent")

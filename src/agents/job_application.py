@@ -39,8 +39,8 @@ class JobApplicationAgent(Agent):
                 3. If an existing application is found, inform the user of their application ID and do not create a new one.
                 4. If no application exists, call the 'create_job_application' tool with these arguments:
                    job_id, name, email, experience, skills, dob (in dd-mm-yyyy format).
-                
-                For all other queries, provide clear and helpful answers regarding the job or application process.
+                5. To check the status of an application, use the 'check_application_status' tool, which takes the user's name and date of birth and returns their application status.
+                6. For all other queries, provide clear and helpful answers regarding the job or application process.
             """,
             stt=assemblyai.STT(),
             llm=openai.LLM(model="gpt-4o-2024-08-06"),
