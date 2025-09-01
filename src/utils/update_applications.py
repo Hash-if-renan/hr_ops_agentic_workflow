@@ -66,4 +66,3 @@ def update_applications():
         with open(file, "w") as f:
             json.dump(app, f, indent=2)
 
-        print(f"✅ Updated {file.name}: {app['application_status']}")
