@@ -1,12 +1,60 @@
 from typing import Literal
 
-TTSModels = Literal[
-    "GEN1",
-    "GEN2"
+TTSLocales = Literal[
+    "en-US",
+    "en-UK",
+    "en-AU",
+    "en-IN",
+    "en-SCOTT",
+    "es-ES",
+    "es-MX",
+    "hi-IN",
+    "ta-IN",
+    "bn-IN",
+    "fr-FR",
+    "de-DE",
+    "it-IT",
+    "pt-BR",
+    "zh-CN",
+    "nl-NL",
+    "ja-JP",
+    "id-ID",
+    "ko-KR",
+    "ro-RO",
+    "tr-TR",
+    "pl-PL",
+    "sk-SK",
+    "hr-HR",
+    "el-GR",
+    "bg-BG",
+]
+
+TTSModels = Literal["GEN2",]
+
+TTSStyles = Literal[
+    "Promo",
+    "Narration",
+    "Calm",
+    "Conversational",
+    "Sad",
+    "Angry",
+    "Sports Commentary",
+    "Newscast",
+    "Terrified",
+    "Inspirational",
+    "Customer Support Agent",
+    "Narration",
+    "Audiobook",
+    "Storytelling",
+    "Furious",
+    "Sobbing",
+    "Wizard",
+    "Clown",
 ]
 
 TTSEncoding = Literal[
-    "mp3_22050",
-    "mp3_44100",
-    "mp3_48000",
+    "pcm",  # pcm_s16le
 ]
+
+TTSDefaultVoiceId = "en-US-amara"
+TTSDefaultVoiceStyle = "Conversational"

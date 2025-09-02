@@ -1,11 +1,14 @@
 import logging
 import json
 import uuid
+from custom.livekit.plugins import murfai
 from pathlib import Path
 from livekit.agents import JobContext, WorkerOptions, cli
 from livekit.agents.voice import Agent, AgentSession, room_io
 from livekit.plugins import openai, silero, assemblyai
 from livekit.plugins import noise_cancellation
+# from livekit.plugins import murfai
+from livekit import rtc
 from dotenv import load_dotenv
 from src.tools.job_application_agent import (
     check_existing_application,
@@ -20,7 +23,13 @@ load_dotenv()
 logger = logging.getLogger("murf-voice-agent")
 logger.setLevel(logging.INFO)
 
-
+async def send_text(room: rtc.Room, text: str):
+    """Send transcript or agent output to frontend clients via LiveKit data channel."""
+    await room.local_participant.publish_data(
+        data=text.encode("utf-8"),
+        reliable=True,
+        topic="transcripts",
+    )
 # ------------------------
 # Agent Definition
 # ------------------------
@@ -81,8 +90,23 @@ class JobApplicationAgent(Agent):
 
             stt=assemblyai.STT(),
             llm=openai.LLM(model="gpt-4o-2024-08-06"),
-            tts=openai.TTS(model="gpt-4o-mini-tts", voice="ash"),
+            # tts=openai.TTS(model="gpt-4o-mini-tts", voice="ash"),
+            tts=murfai.TTS(
+                voice="en-US-natalie",           # Use Amara voice
+                style="Conversational",       # Conversational style
+                locale="en-US"                 # US English
+            ),
             vad=silero.VAD.load(min_speech_duration=0.1),
 
             tools=[check_existing_application, create_job_application, check_application_status,query_knowledge_base],
         )
+        # async def on_response_generated(self, response: str) -> None:
+        #     """
+        #     Hook called whenever the agent generates a text response
+        #     (before sending to TTS / playback).
+        #     """
+        #     # 🚀 Broadcast to frontend via LiveKit data channel
+        #     await send_text(self.room, response)
+
+        #     # Also log it locally
+        #     print(f"[Agent says] {response}")
