@@ -1,5 +1,26 @@
+# Ignore everything by default
+*
+
+# But not these:
+!/.gitignore
+!/requirements.txt
+!/src/
+!/data/applications/
+
+# Inside src, ignore everything else except the ones you want
+/src/*
+!/src/agents/
+!/src/tools/
+!/src/utils/
+!/src/main.py
+
+# Common Python ignores
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+.venv/
+venv/
 .env
-.venv
-/venv
-__pycache__
-data
+.env/
