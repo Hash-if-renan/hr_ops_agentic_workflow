@@ -5,7 +5,8 @@ from __future__ import annotations
 import logging
 from livekit.agents.voice import Agent
 from livekit.plugins import openai, silero, assemblyai
-from livekit.plugins import elevenlabs, murfai
+from livekit.plugins import elevenlabs
+# from custom.livekit.plugins import murfai
 from dotenv import load_dotenv
 
 # ---- import the REAL tools directly ----
@@ -14,6 +15,7 @@ from src.tools.job_application_agent import (
     select_application_by_choice,
     check_application_status,
     query_knowledge_base,
+    handover_to_onboarding
 )
 
 load_dotenv()
@@ -25,7 +27,7 @@ EVE_SYSTEM_PROMPT = """
 You are Eve, a friendly HR assistant on a phone call. Your scope is primarily:
 (A) Application status checks (after a quick login), and
 (B) General HR FAQs via the knowledge base (RAG).
-
+Call the onboarding_tool if the user needs onboarding help.
 Expressive, human delivery (very important)
 - Sound like a warm HR professional on a live call—empathetic, concise, confident.
 - Use natural expressions sparingly to add warmth and clarity: “sure”, “absolutely”, “I hear you”, “no worries”, “got it”, “I can help with that”, “thanks for waiting”.
@@ -51,6 +53,7 @@ Intent routing (you decide)
 - Application progress → STATUS.
 - Policy/onboarding/leave/benefits/documents/probation/salary bands/holiday list → RAG.
 - If it’s only a greeting or vague (“help”), ask: “How may I help you?”
+- Call the "handover_to_onboarding" tool if the user needs onboarding help
 
 Login sequence (only for STATUS)
 1) Authentication preface
@@ -137,12 +140,12 @@ class JobApplicationAgent(Agent):
         super().__init__(
             instructions=EVE_SYSTEM_PROMPT,
             stt=assemblyai.STT(),  # keep your working STT
-            llm=openai.LLM(model="gpt-4o-2024-08-06"),  # or "gpt-4o" if you prefer the alias
-            # tts=openai.TTS(model="gpt-4o-mini-tts", voice="shimmer"),
-            tts=elevenlabs.TTS(
-                voice_id="wlmwDR77ptH6bKHZui0l",
-                model="eleven_multilingual_v2",
-            ),
+            llm=openai.LLM(model="gpt-4.1"),  # or "gpt-4o" if you prefer the alias
+            tts=openai.TTS(model="gpt-4o-mini-tts", voice="shimmer"),
+            # tts=elevenlabs.TTS(
+            #     voice_id="wlmwDR77ptH6bKHZui0l",
+            #     model="eleven_multilingual_v2",
+            # ),
             # tts=murfai.TTS(
             #     voice="en-US-natalie",           # Use Amara voice
             #     style="Conversational",       # Conversational style
@@ -155,6 +158,7 @@ class JobApplicationAgent(Agent):
                 select_application_by_choice,
                 check_application_status,
                 query_knowledge_base,
+                handover_to_onboarding
             ],
         )
 

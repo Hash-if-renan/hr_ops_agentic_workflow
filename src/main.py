@@ -10,6 +10,7 @@ from livekit.agents.voice import AgentSession, room_io
 from livekit.plugins import noise_cancellation
 
 from src.agents.job_application import JobApplicationAgent
+from src.agents.onboarding import OnboardingAgent
 
 # Load .env from repo root
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,7 +23,7 @@ async def entrypoint(ctx: JobContext):
 
     session = AgentSession()
     await session.start(
-        agent=JobApplicationAgent(),  
+        agent=OnboardingAgent(chat_ctx=None),  
         room_input_options=room_io.RoomInputOptions(
             noise_cancellation=noise_cancellation.BVC()
         ),
