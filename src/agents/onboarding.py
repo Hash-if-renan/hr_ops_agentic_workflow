@@ -1,8 +1,10 @@
 from livekit.agents import ChatContext
-
-from livekit.agents.voice import Agent
+from livekit import rtc
+from livekit.agents.voice import Agent,ModelSettings
 from livekit.plugins import openai, silero, assemblyai
 from livekit.plugins import elevenlabs
+from livekit.agents import llm
+from typing import AsyncGenerator
 from src.tools.onboarding_agent import (
     capture_candidate_info,
     check_offer_status,
@@ -79,7 +81,9 @@ If User Repeats Irrelevant Question
 
 
 class OnboardingAgent(Agent):
-    def __init__(self, chat_ctx=None):
+    def __init__(self,room:rtc.Room, chat_ctx=None,):
+        self.room = room
+        print("room:",self.room)
         super().__init__(
             instructions=ONBOARDING_PROMPT,
             stt=assemblyai.STT(),
@@ -106,3 +110,49 @@ class OnboardingAgent(Agent):
 
     async def on_enter(self):
         self.session.generate_reply()
+    async def llm_node(
+        self,
+        chat_ctx: llm.ChatContext,
+        tools: list[llm.FunctionTool | llm.RawFunctionTool],
+        model_settings: ModelSettings,
+    ) -> AsyncGenerator[llm.ChatChunk | str, None]:
+        """Custom LLM node that captures full response text."""
+
+        activity = self._get_activity_or_raise()
+        assert activity.llm is not None, "llm_node called but no LLM node is available"
+        assert isinstance(activity.llm, llm.LLM), (
+            "llm_node should only be used with LLM (non-multimodal/realtime APIs) nodes"
+        )
+
+        tool_choice = model_settings.tool_choice if model_settings else NOT_GIVEN
+        activity_llm = activity.llm
+        print("activity:",activity_llm)
+        conn_options = activity.session.conn_options.llm_conn_options
+
+        buffer: list[str] = []
+        # writer = None
+        # if self.room:
+        #     writer = await self.room.local_participant.stream_text(topic="assistant")
+        #     print("writer recieved:",writer)
+
+        async with activity_llm.chat(
+            chat_ctx=chat_ctx, tools=tools, tool_choice=tool_choice, conn_options=conn_options
+        ) as stream:
+            async for chunk in stream:
+                if isinstance(chunk, str):
+                    buffer.append(chunk)
+                    print("🤖 LLM str chunk:", chunk)
+
+                elif isinstance(chunk, llm.ChatChunk):
+                    if chunk.delta and chunk.delta.content:
+                        buffer.append(chunk.delta.content)
+
+                    if chunk.delta and chunk.delta.tool_calls:
+                        # buffer.append(chunk.delta.tool_calls)
+                        print("🛠️ Tool calls:", chunk.delta.tool_calls)
+                        await self.room.local_participant.send_text(f"tool: {chunk.delta.tool_calls}")
+
+                yield chunk
+
+        self.last_llm_response = "".join(buffer).strip()
+        print("✅ Full LLM response captured:", self.last_llm_response)
