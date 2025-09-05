@@ -150,7 +150,7 @@ class OnboardingAgent(Agent):
                     if chunk.delta and chunk.delta.tool_calls:
                         # buffer.append(chunk.delta.tool_calls)
                         print("🛠️ Tool calls:", chunk.delta.tool_calls)
-                        await self.room.local_participant.send_text(f"tool: {chunk.delta.tool_calls}")
+                        await self.room.local_participant.send_text(f"tool: {chunk.delta.tool_calls}",topic="lk.transcription")
 
                 yield chunk
 
