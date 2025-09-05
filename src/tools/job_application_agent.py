@@ -5,7 +5,8 @@ import json
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, Any, List
-
+from agents.onboarding import OnboardingAgent
+from livekit.agents import RunContext
 from livekit.agents import function_tool  # decorator used by the agent to call tools
 
 
@@ -416,5 +417,11 @@ async def query_knowledge_base(question: str, top_k: int = 4) -> dict:
         "answer": stitched,
         "snippets": snippets
     }
+@function_tool
+async def handover_to_onboarding(context: RunContext[dict]):
+        """Switch to the onboarding agent when user needs onboarding help."""
+        agent=context.session.current_agent
+        onboarding_agent = OnboardingAgent(chat_ctx=context.session._chat_ctx,room=agent.room)
+        return onboarding_agent, "wait for a moment", 
 
 #_____________________________________________________________________________________________#
