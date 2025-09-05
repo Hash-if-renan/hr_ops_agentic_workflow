@@ -1,14 +1,18 @@
 #______________________________________________________________________________________________#
 # src/agents/job_application.py
 from __future__ import annotations
-
+from typing import AsyncGenerator,Dict, Any
 import logging
-from livekit.agents.voice import Agent
+from livekit.agents.voice import Agent,ModelSettings
 from livekit.plugins import openai, silero, assemblyai
 from livekit.plugins import elevenlabs
+from livekit.agents import llm
+import asyncio
+import aiofiles
+import json
 # from custom.livekit.plugins import murfai
 from dotenv import load_dotenv
-
+from livekit import rtc
 # ---- import the REAL tools directly ----
 from src.tools.job_application_agent import (
     list_applications_by_email,
@@ -128,7 +132,7 @@ Never
 
 class JobApplicationAgent(Agent):
     """
-    Same structure you used before, updated for:
+    Job application assistant:
     - Status + RAG only
     - Tiny fillers (prompt-driven)
     - Repeat-back confirmation for name / phone / email
@@ -136,24 +140,15 @@ class JobApplicationAgent(Agent):
     - Status-only answer; keep details for follow-ups
     """
 
-    def __init__(self) -> None:
+    def __init__(self,room:rtc.Room) -> None:
+        self.room=room
         super().__init__(
             instructions=EVE_SYSTEM_PROMPT,
-            stt=assemblyai.STT(),  # keep your working STT
-            llm=openai.LLM(model="gpt-4.1"),  # or "gpt-4o" if you prefer the alias
+            stt=assemblyai.STT(),
+            llm=openai.LLM(model="gpt-4.1"),
             tts=openai.TTS(model="gpt-4o-mini-tts", voice="shimmer"),
-            # tts=elevenlabs.TTS(
-            #     voice_id="wlmwDR77ptH6bKHZui0l",
-            #     model="eleven_multilingual_v2",
-            # ),
-            # tts=murfai.TTS(
-            #     voice="en-US-natalie",           # Use Amara voice
-            #     style="Conversational",       # Conversational style
-            #     locale="en-US",                # US English
-            # ),
             vad=silero.VAD.load(min_speech_duration=0.1),
             tools=[
-                # Only the tools we actually need now
                 list_applications_by_email,
                 select_application_by_choice,
                 check_application_status,
@@ -161,5 +156,112 @@ class JobApplicationAgent(Agent):
                 handover_to_onboarding
             ],
         )
+
+        # Map action names to functions (used in websocket messages)
+        self.actions = {
+            "listing applications": list_applications_by_email,
+            "check application status": check_application_status,
+        }
+        self.function_to_action = {v: k for k, v in self.actions.items()}
+
+    async def _send_websocket_message(self, action: str, result: Dict[str, Any] = None):
+        """Send WebSocket message with action and optional result"""
+        message = {"action": action}
+        if result is not None:
+            message["result"] = result
+
+        try:
+            await self.room.local_participant.send_text(
+                json.dumps(message),
+                topic="lk.transcription"
+            )
+            print(f"✅ Sent WebSocket message: {message}")
+        except Exception as e:
+            print(f"❌ Failed to send WebSocket message: {e}")
+
+    async def llm_node(
+        self,
+        chat_ctx: llm.ChatContext,
+        tools: list[llm.FunctionTool | llm.RawFunctionTool],
+        model_settings: ModelSettings,
+    ) -> AsyncGenerator[llm.ChatChunk | str, None]:
+        """Custom LLM node that captures full response text."""
+
+        activity = self._get_activity_or_raise()
+        assert activity.llm is not None, "llm_node called but no LLM node is available"
+        assert isinstance(activity.llm, llm.LLM)
+
+        tool_choice = model_settings.tool_choice if model_settings else llm.NOT_GIVEN
+        activity_llm = activity.llm
+        conn_options = activity.session.conn_options.llm_conn_options
+
+        buffer: list[str] = []
+        pending_tools: list[tuple[str, callable, dict]] = []
+
+        async with activity_llm.chat(
+            chat_ctx=chat_ctx,
+            tools=tools,
+            tool_choice=tool_choice,
+            conn_options=conn_options,
+        ) as stream:
+            async for chunk in stream:
+                if isinstance(chunk, str):
+                    buffer.append(chunk)
+                    print("🤖 LLM str chunk:", chunk)
+
+                elif isinstance(chunk, llm.ChatChunk):
+                    if chunk.delta and chunk.delta.content:
+                        buffer.append(chunk.delta.content)
+
+                    if chunk.delta and chunk.delta.tool_calls:
+                        print("🛠️ Tool calls:", chunk.delta.tool_calls)
+
+                        for tool_call in chunk.delta.tool_calls:
+                            tool_name = tool_call.name
+                            tool_args = tool_call.arguments or "{}"
+
+                            # 🔑 Parse args safely (JSON string → dict)
+                            if isinstance(tool_args, str):
+                                try:
+                                    tool_args = json.loads(tool_args)
+                                except json.JSONDecodeError:
+                                    print(f"⚠️ Invalid JSON for {tool_name}: {tool_args}")
+                                    tool_args = {}
+
+                            tool_function = None
+                            action_name = None
+                            for name, func in self.actions.items():
+                                if func.__name__ == tool_name:
+                                    tool_function = func
+                                    action_name = name
+                                    break
+
+                            if tool_function and action_name:
+                                # Send "action started"
+                                await self._send_websocket_message(action_name)
+
+                                # Queue tool execution after LLM finishes
+                                pending_tools.append((action_name, tool_function, tool_args))
+
+                yield chunk
+
+        # Capture final LLM response
+        self.last_llm_response = "".join(buffer).strip()
+        print("✅ Full LLM response captured:", self.last_llm_response)
+
+        # Execute queued tools and send results
+        for action_name, tool_function, tool_args in pending_tools:
+            try:
+                if asyncio.iscoroutinefunction(tool_function):
+                    result = await tool_function(**tool_args)
+                else:
+                    result = tool_function(**tool_args)
+
+                await self._send_websocket_message(action_name, result)
+                print(f"✅ Sent result for {action_name}: {result}")
+
+            except Exception as e:
+                await self._send_websocket_message(action_name, {"error": str(e)})
+                print(f"❌ Tool execution failed for {action_name}: {e}")
 
 #______________________________________________________________________________________________#
