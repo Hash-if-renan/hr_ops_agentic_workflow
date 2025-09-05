@@ -41,9 +41,14 @@ async def check_offer_status(name: str, email: str) -> dict:
     rec = _load_candidate_record(name, email)
     print("Record loaded:", rec)
     if not rec:
-        return {"error": "No record found"}
-    offer = rec.get("offer", {})
-    return {"status": offer.get("status"), "eta_hours": offer.get("eta_hours")}
+        result = {"error": "No record found"}
+    else:
+        offer = rec.get("offer", {})
+        result = {"status": offer.get("status"), "eta_hours": offer.get("eta_hours")}
+    
+    # Save result to shared file
+    return result
+
 
 
 @function_tool(
@@ -55,16 +60,6 @@ async def get_offer_summary(name: str, email: str) -> dict:
         return {"error": "No record found"}
     return rec.get("offer", {}).get("summary", {})
 
-
-@function_tool(
-    description="Clarify a specific part of the offer, e.g. compensation, variable component, probation, deadline."
-)
-async def clarify_offer(name: str, email: str, question_type: str) -> dict:
-    rec = _load_candidate_record(name, email)
-    if not rec:
-        return {"error": "No record found"}
-    clar = rec.get("offer", {}).get("clarifications", {})
-    return {"answer": clar.get(question_type)}
 
 
 @function_tool(
@@ -84,8 +79,12 @@ async def confirm_joining_date(name: str, email: str) -> dict:
 async def get_reporting_manager(name: str, email: str) -> dict:
     rec = _load_candidate_record(name, email)
     if not rec:
-        return {"error": "No record found"}
-    return rec.get("joining", {}).get("manager", {})
+        result = {"error": "No record found"}
+    else:
+        result = rec.get("reporting", {})
+    
+    # Save result to shared file
+    return result
 
 
 @function_tool(
@@ -104,8 +103,11 @@ async def get_work_location(name: str, email: str) -> dict:
 async def get_documents_checklist(name: str, email: str) -> dict:
     rec = _load_candidate_record(name, email)
     if not rec:
-        return {"error": "No record found"}
-    return {"documents": rec.get("preboarding", {}).get("documents", [])}
+        result = {"error": "No record found"}
+    else:
+        result = {"documents": rec.get("preboarding", {}).get("documents", [])}
+    
+    return result
 
 
 @function_tool(
@@ -187,12 +189,7 @@ async def update_shipping_address(name: str, email: str, address: str) -> dict:
     fp.write_text(json.dumps(data, indent=2), encoding="utf-8")
     return {"success": True, "preferred_shipping_address": address}
 
-@function_tool(
-    description="""
-    Update the candidate’s joining date.
-    Used when candidate requests deferral or reschedule.
-    """
-)
+
 # async def update_joining_date(name: str, email: str, new_date: str) -> dict:
 #     """
 #     new_date: must be in format YYYY-MM-DD
@@ -211,8 +208,8 @@ async def update_shipping_address(name: str, email: str, address: str) -> dict:
 
 @function_tool(
     description="""
-    Fetch candidate’s offer details from stored JSON.
-    Only call this for offer letter recieved candidates.
+    Fetch candidate's offer details from stored JSON.
+    Only call this for offer letter received candidates.
     Input: name + email (asked only once in session).
     Matches file: data/offers/<normalized_name>_<normalized_email>.json
 
@@ -220,12 +217,13 @@ async def update_shipping_address(name: str, email: str, address: str) -> dict:
     """
 )
 async def get_offer_details(name: str, email: str) -> dict:
-    
     rec = _load_candidate_record(name, email)
-
     if not rec:
-        return {"error": "No record found"}
-    return rec
+        result = {"error": "No record found"}
+    else:
+        result = {"offer_letter":rec.get("offer")}
+    
+    return result
 
 @function_tool(
     description="""
@@ -287,12 +285,11 @@ async def email_documents_checklist(name: str, email: str) -> dict:
     """
 )
 async def send_onboarding_summary(name: str, email: str, conversation_summary: str) -> dict:
-    # In production, integrate with an email service (SendGrid, SES, SMTP, etc.)
     subject = f"Onboarding Plan – {name}"
     email_body = f"""
     Hi {name},
 
-    Here’s a quick recap of our conversation today:
+    Here's a quick recap of our conversation today:
 
     {conversation_summary}
 
@@ -302,12 +299,12 @@ async def send_onboarding_summary(name: str, email: str, conversation_summary: s
     HR Team
     """
 
-    # Mock email send
     print(f"Sending onboarding summary to {email}:\nSubject: {subject}\n\n{email_body}")
-
-    return {
-        "message": f"✅ I’ve sent the conversation summary to {email}. Please check your inbox for ‘{subject}’"
+    result = {
+        "message": f"✅ I've sent the conversation summary to {email}. Please check your inbox for '{subject}'"
     }
+    
+    return result
 
 
 

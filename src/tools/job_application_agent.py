@@ -420,7 +420,8 @@ async def query_knowledge_base(question: str, top_k: int = 4) -> dict:
 @function_tool
 async def handover_to_onboarding(context: RunContext[dict]):
         """Switch to the onboarding agent when user needs onboarding help."""
-        onboarding_agent = OnboardingAgent(chat_ctx=context.session._chat_ctx)
+        agent=context.session.current_agent
+        onboarding_agent = OnboardingAgent(chat_ctx=context.session._chat_ctx,room=agent.room)
         return onboarding_agent, "wait for a moment", 
 
 #_____________________________________________________________________________________________#
