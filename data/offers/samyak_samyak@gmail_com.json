@@ -21,33 +21,6 @@
       "probation": "Yes—3 months, all benefits apply, notice is 30 days.",
       "deadline": "Please accept the offer by 15 Sep 2025."
     }
-  },
-  "joining": {
-    "date": "01 Oct 2025",
-    "manager": {
-      "name": "Anita Sharma",
-      "title": "Engineering Manager",
-      "email": "anita@company.com",
-      "calendar_link": "https://calendly.com/anita/intro"
-    },
-    "location": {
-      "city": "Bangalore",
-      "work_model": "Hybrid"
-    }
-  },
-  "preboarding": {
-    "documents": [
-      "Govt ID (Passport/Aadhaar)",
-      "Highest education certificate",
-      "Last 3 months’ salary slips",
-      "Relieving letter (if applicable)",
-      "PAN card"
-    ],
-    "tasks": [
-      "Accept offer",
-      "Submit KYC & bank details",
-      "Declare taxes",
-      "Acknowledge policies"
-    ]
   }
 }
+  
