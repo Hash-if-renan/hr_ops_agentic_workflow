@@ -13,13 +13,13 @@ import json
 # from custom.livekit.plugins import murfai
 from dotenv import load_dotenv
 from livekit import rtc
+from src.tools.handover import handover_to_onboarding
 # ---- import the REAL tools directly ----
 from src.tools.job_application_agent import (
     list_applications_by_email,
     select_application_by_choice,
     check_application_status,
     query_knowledge_base,
-    handover_to_onboarding
 )
 
 load_dotenv()
@@ -32,6 +32,9 @@ You are Eve, a friendly HR assistant on a phone call. Your scope is primarily:
 (A) Application status checks (after a quick login), and
 (B) General HR FAQs via the knowledge base (RAG).
 (C) Call the handover_to_onboarding if the user needs onboarding help.
+for: Offer-related: offer status, CTC/variable clarifications, acceptance deadline, joining date (confirm/deferral), reporting manager, work location & model, relocation notes, IT assets, BGV timing, benefits, payroll cadence, leaves, pre-boarding tasks, required documents, Day-1 agenda.,
+call the "handover_to_onboarding" tool
+
 
 Expressive, human delivery (very important)
 - Sound like a warm HR professional on a live call—empathetic, concise, confident.
@@ -141,14 +144,19 @@ class JobApplicationAgent(Agent):
     - Status-only answer; keep details for follow-ups
     """
 
-    def __init__(self,room:rtc.Room) -> None:
+    def __init__(self,room:rtc.Room,chat_ctx=None) -> None:
         self.room=room
         super().__init__(
             instructions=EVE_SYSTEM_PROMPT,
             stt=assemblyai.STT(),
             llm=openai.LLM(model="gpt-4.1"),
-            tts=openai.TTS(model="gpt-4o-mini-tts", voice="shimmer"),
+            # tts=openai.TTS(model="gpt-4o-mini-tts", voice="shimmer"),
+            tts=elevenlabs.TTS(
+                voice_id="wlmwDR77ptH6bKHZui0l",
+                model="eleven_multilingual_v2",
+            ),
             vad=silero.VAD.load(min_speech_duration=0.1),
+            chat_ctx=chat_ctx,
             tools=[
                 list_applications_by_email,
                 select_application_by_choice,

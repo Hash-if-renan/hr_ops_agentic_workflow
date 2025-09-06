@@ -9,7 +9,6 @@ from livekit.agents import RunContext
 # from src.agents.onboarding import OnboardingAgent
 from livekit.agents import function_tool  # decorator used by the agent to call tools
 
-
 # ---------- Constants & Helpers ----------
 
 APPS_DIR = Path("data/applications")
@@ -417,5 +416,3 @@ async def query_knowledge_base(question: str, top_k: int = 4) -> dict:
         "answer": stitched,
         "snippets": snippets
     }
-
-#_____________________________________________________________________________________________#

@@ -18,7 +18,7 @@ from src.agents.onboarding import OnboardingAgent
 #     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 # )
 # logger = logging.getLogger(__name__)
-from livekit.plugins import silero, assemblyai, elevenlabs, murfai
+from livekit.plugins import silero, assemblyai, elevenlabs
 
 # from src.agents.job_application import JobApplicationAgent
 # from src.agents.onboarding import OnboardingAgent
@@ -32,15 +32,21 @@ if not os.getenv("OPENAI_API_KEY"):
 
 async def entrypoint(ctx: JobContext):
     await ctx.connect()
-    llm = openai.LLM(model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
-    session = AgentSession(llm=llm)
+    session = AgentSession()
+    # attach disconnect handler
+    # @ctx.room.on("participant_disconnected")
+    # async def _on_disconnected(_):
+    #     print("Room disconnected → clearing session history")      # gracefully stop
+    #     session._chat_ctx.empty()    # drop past conversation memory
+
     await session.start(
-        agent=RouterAgent(),
+        agent=RouterAgent(room=ctx.room),
         room_input_options=room_io.RoomInputOptions(
             noise_cancellation=noise_cancellation.BVC()
         ),
         room=ctx.room,
     )
+
 
 if __name__ == "__main__":
     cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))

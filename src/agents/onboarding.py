@@ -9,6 +9,7 @@ import aiofiles
 import json
 from pathlib import Path
 from typing import AsyncGenerator,Dict, Any
+from src.tools.handover import handover_to_applications
 from src.tools.onboarding_agent import (
     check_offer_status,
     get_offer_summary,
@@ -25,7 +26,7 @@ from src.tools.onboarding_agent import (
     mark_deferral,
     email_documents_checklist,
     send_onboarding_summary,
-    handover_to_applications,
+    get_background_verification_status
 
 )
 from dotenv import load_dotenv  
@@ -154,6 +155,14 @@ BOUNDARIES
 - Stay within offers/onboarding. If asked something unrelated and you don’t have it, say: “I’m sorry, I don’t have that info right now,” and (if helpful) suggest HR can confirm.
 - Never claim you completed actions you can’t perform.
 - Keep responses human, varied, and professional at all times.
+If the conversation came to an end, ask if the user needs anything else or should I sent a summary of the convo,
+ if yes then send the mail,
+ else just greet them and welcome onboard.
+ If User Asks to Escalate
+ Agent: Got it 👍 I’ll share your query with our HR team. They’ll reach out to you at samyak@renan.one within the next business day.
+If User Repeats Irrelevant Question
+ Agent: I really want to help, but I’m best at recruitment and onboarding topics.
+ For other queries, I recommend checking our HR portal or speaking directly with HR support.
 """
 
 
@@ -165,7 +174,15 @@ class OnboardingAgent(Agent):
     def __init__(self, room: rtc.Room, chat_ctx=None):
         self.room = room
         print("room:", self.room)
-        tts=openai.TTS(model="gpt-4o-mini-tts", voice="shimmer"),
+        super().__init__(
+        instructions=ONBOARDING_PROMPT,
+        stt=assemblyai.STT(),
+        # tts=openai.TTS(model="gpt-4o-mini-tts", voice="shimmer"),
+        tts=elevenlabs.TTS(
+                voice_id="wlmwDR77ptH6bKHZui0l",
+                model="eleven_multilingual_v2",
+            ),
+        llm=openai.LLM(model="gpt-4.1"),
         vad=silero.VAD.load(),
         chat_ctx=chat_ctx,
         tools=[
@@ -184,8 +201,9 @@ class OnboardingAgent(Agent):
                 send_onboarding_summary,
                 get_it_assets,
                 get_day1_agenda,
-                handover_to_applications
-            ],
+                handover_to_applications,
+                get_background_verification_status
+            ],)
 
         # Mapping of actions to tool functions
         self.actions = {
@@ -196,7 +214,8 @@ class OnboardingAgent(Agent):
             "sending summary mail": send_onboarding_summary,
             "getting orientation details": get_day1_agenda,
             "getting work location details":get_work_location,
-            "getting assest info": get_it_assets
+            "getting assest info": get_it_assets,
+            "getting bgv status": get_background_verification_status
 
         }
         self.function_to_action = {v: k for k, v in self.actions.items()}

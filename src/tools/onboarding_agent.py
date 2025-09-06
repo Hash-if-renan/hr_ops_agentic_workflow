@@ -104,6 +104,22 @@ async def get_preboarding_tasks(name: str, email: str) -> dict:
     if not rec:
         return {"error": "No record found"}
     return {"tasks": rec.get("preboarding", {}).get("tasks", [])}
+@function_tool(
+    description="Return the candidate's background verification (BGV) status, expected completion days, and remarks."
+)
+async def get_background_verification_status(name: str, email: str) -> dict:
+    rec = _load_candidate_record(name, email)
+    if not rec:
+        return {"error": "No record found"}
+
+    bgv = rec.get("bgv", {})
+    return {
+        "status": bgv.get("status", "unknown"),
+        "expected_days": bgv.get("expected_days", ""),
+        "remarks": bgv.get("remarks", "")
+    }
+
+
 
 @function_tool(
     description="""
@@ -358,15 +374,6 @@ async def get_work_location(name: str, email: str) -> dict:
 #--------------------------------------------------------------------------------------------------------------#
 #______________________________________________________________________________________________________________#
 
-@function_tool
-async def handover_to_applications(context: RunContext[dict]) -> tuple[str, object]:
-    # Local import to avoid circular imports
-    from src.agents.job_application import JobApplicationAgent
-
-    return (
-        "Switching you to application status support…",
-        JobApplicationAgent(),  # <-- no chat_ctx kwarg
-    )
 
 #______________________________________________________________________________________________________________#
 #--------------------------------------------------------------------------------------------------------------#
