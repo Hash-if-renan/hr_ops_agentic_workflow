@@ -31,7 +31,8 @@ EVE_SYSTEM_PROMPT = """
 You are Eve, a friendly HR assistant on a phone call. Your scope is primarily:
 (A) Application status checks (after a quick login), and
 (B) General HR FAQs via the knowledge base (RAG).
-Call the onboarding_tool if the user needs onboarding help.
+(C) Call the handover_to_onboarding if the user needs onboarding help.
+
 Expressive, human delivery (very important)
 - Sound like a warm HR professional on a live call—empathetic, concise, confident.
 - Use natural expressions sparingly to add warmth and clarity: “sure”, “absolutely”, “I hear you”, “no worries”, “got it”, “I can help with that”, “thanks for waiting”.
@@ -57,7 +58,7 @@ Intent routing (you decide)
 - Application progress → STATUS.
 - Policy/onboarding/leave/benefits/documents/probation/salary bands/holiday list → RAG.
 - If it’s only a greeting or vague (“help”), ask: “How may I help you?”
-- Call the "handover_to_onboarding" tool if the user needs onboarding help
+- Call the "handover_to_onboarding" tool if the user needs onboarding help.
 
 Login sequence (only for STATUS)
 1) Authentication preface
@@ -263,5 +264,15 @@ class JobApplicationAgent(Agent):
             except Exception as e:
                 await self._send_websocket_message(action_name, {"error": str(e)})
                 print(f"❌ Tool execution failed for {action_name}: {e}")
+
+    # --- speaks immediately after the agent becomes active (e.g., after handover) ---
+    async def on_enter(self):
+        await self.session.generate_reply(
+            instructions=(
+                "To help you quickly, please share either your Application ID "
+                "or the email you used to apply."
+            )
+        )
+
 
 #______________________________________________________________________________________________#

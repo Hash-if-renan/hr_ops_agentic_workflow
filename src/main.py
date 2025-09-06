@@ -3,6 +3,7 @@ import os
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
+from livekit.plugins import openai 
 
 from livekit.agents import JobContext, WorkerOptions, cli
 from livekit.agents.voice import AgentSession, room_io
@@ -17,6 +18,11 @@ from src.agents.onboarding import OnboardingAgent
 #     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 # )
 # logger = logging.getLogger(__name__)
+from livekit.plugins import silero, assemblyai, elevenlabs, murfai
+
+# from src.agents.job_application import JobApplicationAgent
+# from src.agents.onboarding import OnboardingAgent
+from src.agents.router import RouterAgent
 
 # Load .env from repo root
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,23 +31,16 @@ if not os.getenv("OPENAI_API_KEY"):
     raise RuntimeError(f"OPENAI_API_KEY missing. Expected in {ROOT / '.env'}")
 
 async def entrypoint(ctx: JobContext):
-    try:
-        await ctx.connect()
-        # logger.info(f"Connected to room: {ctx.room.name}")
-        
-
-        session = AgentSession()
-        await session.start(
-            agent=JobApplicationAgent(room=ctx.room),  
-            room_input_options=room_io.RoomInputOptions(
-                noise_cancellation=noise_cancellation.BVC()
-            ),
-            room=ctx.room,
-        )
-        
-    except Exception as e:
-        # logger.error(f"Error in entrypoint: {e}")
-        raise
+    await ctx.connect()
+    llm = openai.LLM(model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
+    session = AgentSession(llm=llm)
+    await session.start(
+        agent=RouterAgent(),
+        room_input_options=room_io.RoomInputOptions(
+            noise_cancellation=noise_cancellation.BVC()
+        ),
+        room=ctx.room,
+    )
 
 if __name__ == "__main__":
     cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))

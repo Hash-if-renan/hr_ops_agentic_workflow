@@ -3,6 +3,9 @@ from datetime import datetime
 from typing import Dict, Any, Optional, List
 from livekit.agents import function_tool
 from pathlib import Path
+from livekit.agents import RunContext
+# from src.agents.job_application import JobApplicationAgent
+
 
 OFFERS_DIR = Path("data/offers")
 
@@ -22,7 +25,6 @@ def _load_candidate_record(name: str, email: str) -> Optional[Dict[str, Any]]:
         return json.loads(fp.read_text(encoding="utf-8"))
     except Exception:
         return None
-
 
 
 
@@ -172,7 +174,6 @@ async def update_shipping_address(name: str, email: str, address: str) -> dict:
 
     fp.write_text(json.dumps(data, indent=2), encoding="utf-8")
     return {"success": True, "preferred_shipping_address": address}
-
 
 # async def update_joining_date(name: str, email: str, new_date: str) -> dict:
 #     """
@@ -353,11 +354,20 @@ async def get_work_location(name: str, email: str) -> dict:
         "work_model": work_model
     }
 
+#______________________________________________________________________________________________________________#
+#--------------------------------------------------------------------------------------------------------------#
+#______________________________________________________________________________________________________________#
 
+@function_tool
+async def handover_to_applications(context: RunContext[dict]) -> tuple[str, object]:
+    # Local import to avoid circular imports
+    from src.agents.job_application import JobApplicationAgent
 
+    return (
+        "Switching you to application status support…",
+        JobApplicationAgent(),  # <-- no chat_ctx kwarg
+    )
 
-
-    
-
-
-
+#______________________________________________________________________________________________________________#
+#--------------------------------------------------------------------------------------------------------------#
+#______________________________________________________________________________________________________________#
