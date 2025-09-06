@@ -10,13 +10,14 @@ import json
 from pathlib import Path
 from typing import AsyncGenerator,Dict, Any
 from src.tools.onboarding_agent import (
-    capture_candidate_info,
     check_offer_status,
     get_offer_summary,
     confirm_joining_date,
     get_reporting_manager,
     get_work_location,
     get_preboarding_tasks,
+    get_day1_agenda,
+    get_it_assets,
     get_documents_checklist,
     get_offer_details,
     update_shipping_address,
@@ -34,8 +35,9 @@ ONBOARDING_PROMPT = """
 You are an onboarding specialist speaking to a candidate **over a phone call**.  
 
 🎯 Flow rules:
-- Ask for candidate's name and email once at the start.  
-- Use them to fetch candidate details from their JSON record.  
+- If handed over from another agents context, coninue the conversation in a natural way without letting the user know its a seperate agent.
+- Ask for candidate's name and email once when the user request for anything, in the start of the conversation,
+- Keep this name and email in history throughout the conversation, use that for all the necessary tools  
 - Never ask for name/email again after it’s captured.  
 - Use structured function calls to pull info (offer, joining, preboarding), but **never read JSON directly to the user**.  
 - Instead, respond in a natural, conversational way — like a recruiter on a call.
@@ -97,7 +99,6 @@ class OnboardingAgent(Agent):
             vad=silero.VAD.load(),
             chat_ctx=chat_ctx,
             tools=[
-                capture_candidate_info,
                 check_offer_status,
                 get_offer_summary,
                 confirm_joining_date,
@@ -111,6 +112,8 @@ class OnboardingAgent(Agent):
                 mark_deferral,
                 email_documents_checklist,
                 send_onboarding_summary,
+                get_it_assets,
+                get_day1_agenda
             ],
         )
 
@@ -121,6 +124,10 @@ class OnboardingAgent(Agent):
             "getting offer": get_offer_details,
             "getting manager details": get_reporting_manager,
             "sending summary mail": send_onboarding_summary,
+            "getting orientation details": get_day1_agenda,
+            "getting work location details":get_work_location,
+            "getting assest info": get_it_assets
+
         }
         self.function_to_action = {v: k for k, v in self.actions.items()}
 

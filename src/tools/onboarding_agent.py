@@ -23,14 +23,7 @@ def _load_candidate_record(name: str, email: str) -> Optional[Dict[str, Any]]:
     except Exception:
         return None
 
-@function_tool(
-    description="""
-    Capture candidate’s details (name, email, role) once at the start of session.
-    These are later used to locate the JSON record in data/offers/<name_email>.json.
-    """
-)
-async def capture_candidate_info(name: str, email: str) -> dict:
-    return {"name": name, "email": email}
+
 
 
 @function_tool(
@@ -86,15 +79,6 @@ async def get_reporting_manager(name: str, email: str) -> dict:
     # Save result to shared file
     return result
 
-
-@function_tool(
-    description="Get the work location and work model (onsite/hybrid/remote)."
-)
-async def get_work_location(name: str, email: str) -> dict:
-    rec = _load_candidate_record(name, email)
-    if not rec:
-        return {"error": "No record found"}
-    return rec.get("joining", {}).get("location", {})
 
 
 @function_tool(
@@ -305,6 +289,70 @@ async def send_onboarding_summary(name: str, email: str, conversation_summary: s
     }
     
     return result
+
+@function_tool(
+    description="""
+    Retrieve the candidate's Day-1 agenda (orientation and activities planned on the first day).
+    """
+)
+async def get_day1_agenda(name: str, email: str) -> dict:
+    rec = _load_candidate_record(name, email)
+    if not rec:
+        return {"error": "No record found"}
+
+    day1_agenda = rec.get("it_assets", {}).get("day1_agenda", {})
+
+    if not day1_agenda:
+        return {"error": "No Day-1 agenda found for this candidate"}
+
+    return {
+        "day1_agenda": day1_agenda
+    }
+
+@function_tool(
+    description="""
+    Retrieve the candidate's IT asset provisioning details 
+    (laptop shipping, email provisioning, VPN access, shipping address).
+    """
+)
+async def get_it_assets(name: str, email: str) -> dict:
+    rec = _load_candidate_record(name, email)
+    if not rec:
+        return {"error": "No record found"}
+
+    it_assets = rec.get("it_assets", {})
+
+    if not it_assets:
+        return {"error": "No IT assets details found for this candidate"}
+
+    return {
+        "laptop_shipping": it_assets.get("laptop_shipping"),
+        "email_provisioning": it_assets.get("email_provisioning"),
+        "vpn_access": it_assets.get("vpn_access"),
+        "preferred_shipping_address": it_assets.get("preferred_shipping_address"),
+    }
+
+@function_tool(
+    description="""
+    Retrieve the candidate's assigned work location (e.g., office campus, building, or remote model).
+    """
+)
+async def get_work_location(name: str, email: str) -> dict:
+    rec = _load_candidate_record(name, email)
+    if not rec:
+        return {"error": "No record found"}
+
+    location = rec.get("candidate", {}).get("location")
+    work_model = rec.get("candidate", {}).get("work_model")
+
+    if not location and not work_model:
+        return {"error": "No work location details found for this candidate"}
+
+    return {
+        "work_location": location,
+        "work_model": work_model
+    }
+
 
 
 
